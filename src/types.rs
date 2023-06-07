@@ -36,7 +36,7 @@ impl fmt::Display for WriteError {
     }
 }
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
     /// Owner of the repository to backup
@@ -45,9 +45,12 @@ pub struct Args {
     /// Name of the repository to backup
     #[arg(short, long)]
     pub repo: String,
-    /// Personal Access Token to the GitHub API
-    #[arg(short, long)]
-    pub personal_access_token: String,
+    /// Personal Access Token to the GitHub API supplied via the command line
+    #[arg(short, long, group = "pat")]
+    pub personal_access_token: Option<String>,
+    /// Personal Access Token to the GitHub API read from a file
+    #[arg(short = 'f', long, value_name = "PATH", group = "pat")]
+    pub personal_access_token_file: Option<PathBuf>,
     /// Destination where the backup should be written to
     #[arg(short, long, value_name = "PATH")]
     pub destination: PathBuf,

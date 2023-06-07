@@ -28,6 +28,7 @@ const EXIT_CREATING_DIRS: u8 = 1;
 const EXIT_CREATING_OCTOCRAB_INSTANCE: u8 = 2;
 const EXIT_API_ERROR: u8 = 3;
 const EXIT_WRITING: u8 = 3;
+const EXIT_NO_PAT: u8 = 4;
 
 mod types;
 
@@ -472,17 +473,51 @@ fn get_last_backup_time(destination: PathBuf) -> Option<DateTime<Utc>> {
     }
 }
 
+fn personal_access_token(args: Args) -> Option<String> {
+    if let Some(pat) = args.personal_access_token {
+        info!("Using the GitHub personal access token specified on the command line");
+        return Some(pat);
+    } else if let Some(pat_file) = args.personal_access_token_file {
+        info!(
+            "Reading the GitHub personal access token from '{}'",
+            pat_file.display()
+        );
+        match fs::read_to_string(pat_file.clone()) {
+            Ok(pat) => {
+                return Some(pat.trim().to_string());
+            }
+            Err(e) => {
+                error!(
+                    "Could not read GitHub personal access token from '{}': {}",
+                    pat_file.display(),
+                    e
+                );
+                return None;
+            }
+        }
+    }
+    None
+}
+
 #[tokio::main]
 async fn main() -> ExitCode {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let args: Args = Args::parse();
     info!(
-        "Starting backup of {}:{} on GitHub to {}..",
+        "Starting backup of {}:{} on GitHub to '{}'",
         args.owner,
         args.repo,
         args.destination.display()
     );
+
+    let pat = match personal_access_token(args.clone()) {
+        Some(pat) => pat,
+        None => {
+            error!("No GitHub personal access token present - exiting.");
+            return ExitCode::from(EXIT_NO_PAT);
+        }
+    };
 
     let issues_dir = args.destination.join("issues");
     let pulls_dir = args.destination.join("pulls");
@@ -512,7 +547,7 @@ async fn main() -> ExitCode {
     let last_backup_time: Option<DateTime<Utc>> = get_last_backup_time(args.destination.clone());
 
     let instance = match octocrab::OctocrabBuilder::default()
-        .personal_token(args.personal_access_token)
+        .personal_token(pat)
         .build()
     {
         Ok(instance) => instance,
