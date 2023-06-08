@@ -18,7 +18,7 @@ use tokio::time::{sleep, Duration};
 
 use types::*;
 
-const STATE_FILE_PATH: &str = "state.json";
+const STATE_FILE: &str = "state.json";
 
 const MAX_PER_PAGE: u8 = 100;
 const START_PAGE: u32 = 1; // GitHub starts indexing at page 1
@@ -420,20 +420,25 @@ fn write(x: EntryWithMetadata, destination: PathBuf) -> Result<(), WriteError> {
     Ok(())
 }
 
-fn write_backup_state(start_time: DateTime<Utc>) {
+fn write_backup_state(
+    start_time: DateTime<Utc>,
+    mut destination: PathBuf,
+) -> Result<(), WriteError> {
     let state = BackupState {
         version: STATE_VERSION,
         last_backup: start_time,
     };
-    let json = serde_json::to_string_pretty(&state).unwrap();
-    let mut file = File::create(STATE_FILE_PATH).unwrap();
-    file.write_all(json.as_bytes()).unwrap();
-    info!("written {}", STATE_FILE_PATH);
+    destination.push(STATE_FILE);
+    let json = serde_json::to_string_pretty(&state)?;
+    let mut file = File::create(destination.clone())?;
+    file.write_all(json.as_bytes())?;
+    info!("Written backup state to {}", destination.display());
+    Ok(())
 }
 
 fn get_last_backup_time(destination: PathBuf) -> Option<DateTime<Utc>> {
     let mut path = destination;
-    path.push(STATE_FILE_PATH);
+    path.push(STATE_FILE);
     info!("Trying to read {} file", path.display());
     match fs::read_to_string(path.clone()) {
         Ok(contents) => {
@@ -586,7 +591,15 @@ async fn main() -> ExitCode {
     }
 
     if task.await.is_ok() {
-        write_backup_state(start_time);
+        if let Err(e) = write_backup_state(start_time, args.destination.clone()) {
+            error!(
+                "Failed to write {} to {}: {}",
+                STATE_FILE,
+                args.destination.clone().display(),
+                e
+            );
+            return ExitCode::from(EXIT_WRITING);
+        }
     } else {
         return ExitCode::from(EXIT_API_ERROR);
     }
