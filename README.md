@@ -74,3 +74,10 @@ nix run github:0xb10c/nix#github-metadata-backup
 
 [nix-package-collection]: https://github.com/0xB10C/nix
 
+## Mirroring GitHub metadata
+
+The backups can be used as input for a GitHub mirror. See the
+[github-metadata-mirror] project for details.
+
+[github-metadata-mirror]: https://github.com/0xB10C/github-metadata-mirror
+
