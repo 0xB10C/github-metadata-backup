@@ -1,7 +1,12 @@
 [package]
-name = "github-meta-backup"
+name = "github-metadata-backup"
 version = "0.1.0"
 edition = "2021"
+description = "Download issues and pull-requests from the GitHub API and store as JSON files. Supports incremental updates."
+readme = "README.md"
+authors = ["0xB10C"]
+repository = "https://github.com/0xB10C/github-metadata-backup"
+license-file = "LICENSE"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
