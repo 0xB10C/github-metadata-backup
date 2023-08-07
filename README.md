@@ -1,7 +1,7 @@
 # github-metadata-backup
 
 Download issues and pull-requests from the GitHub API and store as JSON files.
-Supports incremental updates. The tool is written in Rust. Please
+Supports incremental updates. The tool is written in Rust.
 
 ## Usage
 
