@@ -53,7 +53,7 @@ async fn wait_on_ratelimit() {
         }
 
         let reset = ratelimit.resources.core.reset;
-        let reset_in = (reset - unix_time as usize) + 2;
+        let reset_in = (reset - unix_time) + 2;
 
         info!(
             "GitHub rate-limit hit (remaining={}): should reset in {} seconds (at {}).",
