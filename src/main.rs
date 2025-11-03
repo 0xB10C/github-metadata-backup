@@ -242,7 +242,9 @@ async fn get_issue_page(
         .per_page(100)
         .direction(params::Direction::Ascending)
         .sort(sort)
-        .since(since.unwrap_or_default())
+        // for some reason, the GitHub API doesn't return anything
+        // if you give it 1970-01-01 00:00:00 UTC, so give it 1970-01-02.
+        .since(since.unwrap_or(Utc.with_ymd_and_hms(1970, 1, 2, 0, 0, 0).unwrap()))
         .state(params::State::All)
         .page(page)
         .send()
@@ -577,7 +579,9 @@ async fn main() -> ExitCode {
         }
     });
 
+    let mut written_anything = false;
     while let Some(data) = receiver.recv().await {
+        written_anything = true;
         if let Err(e) = write(data.clone(), args.destination.clone()) {
             error!(
                 "Could not write {} to {}: {}",
@@ -591,14 +595,17 @@ async fn main() -> ExitCode {
     }
 
     if task.await.is_ok() {
-        if let Err(e) = write_backup_state(start_time, args.destination.clone()) {
-            error!(
-                "Failed to write {} to {}: {}",
-                STATE_FILE,
-                args.destination.clone().display(),
-                e
-            );
-            return ExitCode::from(EXIT_WRITING);
+        // only write state file if we actually wrote anything
+        if written_anything {
+            if let Err(e) = write_backup_state(start_time, args.destination.clone()) {
+                error!(
+                    "Failed to write {} to {}: {}",
+                    STATE_FILE,
+                    args.destination.clone().display(),
+                    e
+                );
+                return ExitCode::from(EXIT_WRITING);
+            }
         }
     } else {
         return ExitCode::from(EXIT_API_ERROR);
