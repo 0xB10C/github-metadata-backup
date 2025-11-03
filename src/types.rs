@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use clap::Parser;
 use octocrab::models::{issues, pulls, timelines};
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::error;
 use std::fmt;
 use std::io;
@@ -114,9 +115,29 @@ impl PullWithMetadata {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct BackupState {
+pub struct BackupState<'a> {
     /// Version of the BackupState
     pub version: u32,
     /// UTC Unix timestamp when the last backup was completed.
     pub last_backup: DateTime<Utc>,
+    /// Failed issues on last run, to be retried.
+    #[serde(default = "failed_issues_default")]
+    pub failed_issues: Cow<'a, [u64]>,
+    /// Failed pull requests on last run, to be retried.
+    // Serde default value provided for compatibility / upgrade path
+    // from state version 1.
+    #[serde(default = "failed_pulls_default")]
+    pub failed_pulls: Cow<'a, [u64]>,
+}
+
+// Serde default value generator provided for compatibility / upgrade
+// path from state version 1.
+fn failed_issues_default() -> Cow<'static, [u64]> {
+    Cow::Borrowed(&[])
+}
+
+// Serde default value generator provided for compatibility / upgrade
+// path from state version 1.
+fn failed_pulls_default() -> Cow<'static, [u64]> {
+    Cow::Borrowed(&[])
 }
